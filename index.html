@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Bitcoin ve Borsa Fiyat Takibi</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #0b7dda;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .status.connected {
+            background: #4CAF50;
+        }
+
+        .status.disconnected {
+            background: #f44336;
+        }
+
+        .prices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .price-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+
+        .price-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .price-card.bitcoin {
+            border-left: 5px solid #f7931a;
+        }
+
+        .price-card.stock {
+            border-left: 5px solid #2196F3;
+        }
+
+        .price-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .symbol {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .type-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .type-badge.crypto {
+            background: #f7931a;
+            color: white;
+        }
+
+        .type-badge.stock {
+            background: #2196F3;
+            color: white;
+        }
+
+        .price {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .change {
+            font-size: 1.2em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .change.positive {
+            color: #4CAF50;
+        }
+
+        .change.negative {
+            color: #f44336;
+        }
+
+        .alerts-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .alerts-section h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .alert-item {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 5px solid;
+        }
+
+        .alert-item.rise {
+            background: #e8f5e9;
+            border-color: #4CAF50;
+        }
+
+        .alert-item.fall {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .chart-container h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .auto-update {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>🚀 Bitcoin ve Borsa Fiyat Takibi</h1>
+                <p>Gerçek zamanlı fiyat takibi ve yükseliş/düşüş tespiti</p>
+            </div>
+
+            <div class="status" :class="isConnected ? 'connected' : 'disconnected'">
+                {{ isConnected ? '🟢 Bağlı' : '🔴 Bağlantı Yok' }}
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" @click="fetchPrices">Fiyatları Yenile</button>
+                <button class="btn btn-secondary" @click="checkAlerts">Uyarıları Kontrol Et</button>
+                <button class="btn btn-danger" @click="clearAlerts">Uyarıları Temizle</button>
+            </div>
+
+            <div class="auto-update">
+                <label>Otomatik Güncelleme:</label>
+                <label class="switch">
+                    <input type="checkbox" v-model="autoUpdate" @change="toggleAutoUpdate">
+                    <span class="slider"></span>
+                </label>
+                <span v-if="autoUpdate">Her {{ updateInterval }} saniyede bir</span>
+            </div>
+
+            <div v-if="loading" class="loading">
+                ⏳ Yükleniyor...
+            </div>
+
+            <div v-else>
+                <div class="prices-grid">
+                    <div v-for="item in prices" :key="item.symbol" 
+                         class="price-card" 
+                         :class="item.type === 'crypto' ? 'bitcoin' : 'stock'">
+                        <div class="price-card-header">
+                            <span class="symbol">{{ item.symbol }}</span>
+                            <span class="type-badge" :class="item.type">{{ item.type === 'crypto' ? 'Kripto' : 'Hisse' }}</span>
+                        </div>
+                        <div class="price">${{ formatPrice(item.price) }}</div>
+                        <div class="change" :class="item.change_percent >= 0 ? 'positive' : 'negative'">
+                            <span>{{ item.change_percent >= 0 ? '📈' : '📉' }}</span>
+                            <span>{{ item.change_percent >= 0 ? '+' : '' }}{{ item.change_percent.toFixed(2) }}%</span>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                            {{ formatTime(item.timestamp) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h2>📊 Fiyat Grafiği - {{ selectedChartSymbol }}</h2>
+                    <select v-model="selectedChartSymbol" @change="updateChart" style="padding: 10px; margin-bottom: 20px; border-radius: 5px; border: 1px solid #ddd;">
+                        <option v-for="symbol in chartSymbols" :key="symbol" :value="symbol">{{ symbol }}</option>
+                    </select>
+                    <canvas id="priceChart" width="400" height="100"></canvas>
+                </div>
+
+                <div class="alerts-section" v-if="alerts.length > 0">
+                    <h2>🚨 Uyarılar ({{ alerts.length }})</h2>
+                    <div v-for="(alert, index) in alerts" :key="index" 
+                         class="alert-item" 
+                         :class="alert.change_type">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>{{ alert.symbol }}</strong>
+                                <div style="margin-top: 5px;">
+                                    <span>{{ alert.change_type === 'rise' ? '🚀 YÜKSELİŞ' : '⚠️ DÜŞÜŞ' }}</span>
+                                    <span style="margin-left: 10px;">{{ alert.change_percent >= 0 ? '+' : '' }}{{ alert.change_percent.toFixed(2) }}%</span>
+                                </div>
+                                <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                                    Önceki: ${{ formatPrice(alert.previous_price) }} → 
+                                    Güncel: ${{ formatPrice(alert.current_price) }}
+                                </div>
+                            </div>
+                            <div style="text-align: right; font-size: 0.9em; color: #666;">
+                                {{ formatTime(alert.timestamp) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    prices: [],
+                    alerts: [],
+                    loading: false,
+                    isConnected: false,
+                    autoUpdate: false,
+                    updateInterval: 5,
+                    updateTimer: null,
+                    selectedChartSymbol: 'BTC/USD',
+                    chart: null,
+                    chartSymbols: ['BTC/USD', 'AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN'],
+                    apiUrl: 'http://localhost:5000'
+                }
+            },
+            mounted() {
+                this.fetchPrices();
+                this.checkAlerts();
+                this.updateChart();
+            },
+            methods: {
+                async fetchPrices() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`${this.apiUrl}/api/all/prices`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.prices = data;
+                            this.isConnected = true;
+                            this.updateChart();
+                        } else {
+                            this.isConnected = false;
+                        }
+                    } catch (error) {
+                        console.error('Hata:', error);
+                        this.isConnected = false;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async checkAlerts() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/api/alerts/check`, {
+                            method: 'POST'
+                        });
+                        if (response.ok) {
+                            await this.loadAlerts();
+                        }
+                    } catch (error) {
+                        console.error('Uyarı kontrolü hatası:', error);
+                    }
+                },
+                async loadAlerts() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/api/alerts`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.alerts = data.reverse(); // En yeni uyarılar üstte
+                        }
+                    } catch (error) {
+                        console.error('Uyarı yükleme hatası:', error);
+                    }
+                },
+                clearAlerts() {
+                    this.alerts = [];
+                },
+                toggleAutoUpdate() {
+                    if (this.autoUpdate) {
+                        this.updateTimer = setInterval(() => {
+                            this.fetchPrices();
+                            this.checkAlerts();
+                        }, this.updateInterval * 1000);
+                    } else {
+                        if (this.updateTimer) {
+                            clearInterval(this.updateTimer);
+                            this.updateTimer = null;
+                        }
+                    }
+                },
+                formatPrice(price) {
+                    return new Intl.NumberFormat('tr-TR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }).format(price);
+                },
+                formatTime(timestamp) {
+                    const date = new Date(timestamp);
+                    return date.toLocaleString('tr-TR');
+                },
+                async updateChart() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/api/history/${this.selectedChartSymbol}`);
+                        if (response.ok) {
+                            const history = await response.json();
+                            this.drawChart(history);
+                        }
+                    } catch (error) {
+                        console.error('Grafik hatası:', error);
+                    }
+                },
+                drawChart(history) {
+                    const ctx = document.getElementById('priceChart').getContext('2d');
+                    
+                    if (this.chart) {
+                        this.chart.destroy();
+                    }
+
+                    const labels = history.map(item => {
+                        const date = new Date(item.timestamp);
+                        return date.toLocaleTimeString('tr-TR');
+                    });
+                    const prices = history.map(item => item.price);
+
+                    this.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: this.selectedChartSymbol,
+                                data: prices,
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    display: true
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: false
+                                }
+                            }
+                        }
+                    });
+                }
+            },
+            beforeUnmount() {
+                if (this.updateTimer) {
+                    clearInterval(this.updateTimer);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
+
